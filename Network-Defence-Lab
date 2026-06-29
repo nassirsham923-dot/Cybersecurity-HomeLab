@@ -1,0 +1,68 @@
+# 🛠️ Advanced Virtual Cybersecurity Homelab
+
+## 📋 Project Overview
+This repository documents the end-to-end design, deployment, configuration, and maintenance of an isolated virtual security testing environment. The purpose of this homelab is to provide a safe, controlled sandbox to analyze network data flows, observe how web protocols transmit information, and understand the structural mechanics of both secure and insecure network services.
+
+By building this infrastructure from scratch, I am applying core principles of **Network Defense (Blue Teaming)**, systems engineering, and virtualization management.
+
+---
+
+## 🗺️ Network Architecture & Topology
+
+To maintain complete safety and prevent experimental traffic from leaking onto the physical home network or the public internet, the environment is strictly contained within an isolated **Layer 2 broadcast domain** using Oracle VirtualBox.
+
+| Device Name | Operating System | Role / Function | Network Interface Mode | Assigned IP Address |
+| :--- | :--- | :--- | :--- | :--- |
+| **Analysis Workstation** | Kali Linux (2026.1) | Traffic monitoring, auditing, and log analysis | Host-Only Adapter | `192.168.100.249` |
+| **Target Server** | Metasploitable 2 | Hosting legacy web services (HTTP, FTP, SSH) | Host-Only Adapter | *[Pending Verification]* |
+| **Virtual Switch** | VirtualBox Engine | Handles local frame switching (Subnet `192.168.100.0/24`) | Internal DHCP Disabled | Local Broadcast Only |
+
+---
+
+## 🔧 Step-by-Step Installation & Configuration Log
+
+### Phase 1: Hypervisor & Hyper-V Environment Setup
+1. Deployed **Oracle VM VirtualBox Manager**.
+2. Created a dedicated Host-Only Network ID via the VirtualBox Network Manager utility.
+3. Configured the Subnet IPv4 address space manually to `192.168.100.0` with a Subnet Mask of `255.255.255.0` ($192.168.100.0/24$).
+4. Disabled the built-in VirtualBox DHCP server to maintain complete control over manual IP assignments and static configurations.
+
+### Phase 2: Operating System Deployments
+* **Analysis Machine:** Provisioned a pre-built Kali Linux virtual appliance (`kali-linux-2026.1-virtualbox-amd64`). Allocated 2GB RAM and 2 vCPUs to optimize packet capturing performance under load.
+* **Target Machine:** Extracted and registered the Metasploitable 2 virtual disk (`Metasploitable.vmdk`). Allocated 512MB RAM, isolating it entirely within the exact same Host-Only network adapter.
+
+---
+
+## 🧠 Engineering & Troubleshooting Notes (Real-World Fixes)
+
+A critical aspect of systems engineering is managing network conflicts. During the initial initialization of this lab, I encountered a major network configuration hurdle:
+
+> ### 🛑 Incident: IP Address Collision / Conflict
+> * **Symptom:** Both the Kali Linux analysis workstation and the target server were interacting on the network using overlapping configurations, or reporting conflicting identities on the `192.168.100.249` address space.
+> * **The Root Cause Analysis:** When two network interfaces share identical logical identifiers within the same broadcast domain, Address Resolution Protocol (ARP) tables become corrupted. Packets are delivered misrouted, dropping active sessions.
+> * **Defensive Resolution Plan:** >   1. Boot each virtual machine independently to avoid live packet drop loops.
+>   2. Access the Linux terminal and utilize system utility commands like `ifconfig` or `ip a` to audit interface states.
+>   3. Manually adjust configurations to ensure every host maintains a distinct, static IP mapping.
+
+---
+
+## 🚀 Active Learning Objectives & Lab Milestones
+
+Once the network layer is fully stabilized, this repository will document the technical output of the following defensive labs:
+
+### 🔬 Lab 1: Interface Verification & Connectivity Testing
+* **Objective:** Establish clear end-to-end communication channels.
+* **Command Verification:** Execute mutual ICMP verification requests (`ping -c 4 <destination_ip>`) to confirm the path is clear.
+* **Documentation:** Capture terminal logs proving successful network handshakes.
+
+### 🔬 Lab 2: Plaintext Protocol Analysis (HTTP POST Extraction)
+* **Objective:** Analyze how unencrypted forms pass authentication tokens across a local area network.
+* **Methodology:** Launch **Wireshark** on interface `eth0`, filter for `http`, navigate to the local web application port (`http://192.168.100.X`), and observe how a login request packages fields into raw text.
+* **Blue Team Takeaway:** Documenting the precise visibility of cleartext traffic highlights the business necessity for modern TLS/SSL encryption ($HTTPS$).
+
+---
+
+## 🛠️ Core Tools Practiced In This Lab
+* **Virtualization:** Oracle VirtualBox (Host-Only Networking, VM Hardening)
+* **Linux Administration:** Core Debian/Kali CLI, network configuration management (`ifconfig`, `apt upgrade`)
+* **Network Auditing:** ICMP Diagnostic Utilities, Wireshark Packet Capture (Upcoming)
